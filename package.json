@@ -1,0 +1,46 @@
+{
+    "name": "player-sdk",
+    "version": "1.0.0",
+    "description": "Video player library: MP4 and HLS, byte ranges included. TypeScript, no framework.",
+    "type": "module",
+    "sideEffects": ["**/*.css"],
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        },
+        "./style.css": {
+            "types": "./dist/style.d.ts",
+            "default": "./dist/style.css"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
+        "build:js": "esbuild src/index.ts --bundle --format=esm --target=es2020 --packages=external --outfile=dist/index.js",
+        "build:css": "node scripts/build-css.mjs",
+        "build:types": "tsc -p tsconfig.build.json",
+        "build": "npm run clean && npm run build:js && npm run build:css && npm run build:types",
+        "typecheck": "tsc --noEmit",
+        "dev": "esbuild demo/main.ts --bundle --splitting --format=esm --target=es2020 --outdir=demo/dist --servedir=demo --serve=127.0.0.1:8080 --watch=forever",
+        "format": "prettier --write src demo"
+    },
+    "dependencies": {
+        "hls.js": "^1.7.3"
+    },
+    "devDependencies": {
+        "esbuild": "^0.28.2",
+        "prettier": "^3.9.10",
+        "typescript": "^7.0.2"
+    },
+    "prettier": {
+        "singleQuote": true,
+        "tabWidth": 4,
+        "printWidth": 160,
+        "trailingComma": "all"
+    }
+}

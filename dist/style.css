@@ -1,0 +1,764 @@
+@property --vp-icon-size {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 20px;
+}
+.vp {
+    /* The defaults are fallbacks inside var(), never declarations of --vp-*: a --vp-* declared on .vp itself would shadow
+       the value that the host sets on an ancestor. */
+    position: relative;
+    width: 100%;
+    height: var(--vp-height, auto);
+    aspect-ratio: var(--vp-aspect, 16 / 9);
+    overflow: hidden;
+    border-radius: var(--vp-radius, 12px);
+    background: #000;
+    color: #fff;
+    font:
+        15px/1.4 system-ui,
+        -apple-system,
+        'Segoe UI',
+        Roboto,
+        sans-serif;
+    color-scheme: dark;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: 0;
+    --_s: clamp(12px, calc(var(--vp-icon-size, 20px) * var(--_fit, 1)), 40px);
+    --_r: var(--vp-radius, 12px);
+    --_bw: calc(var(--_s) * 2.15);
+    --_bh: calc(var(--_s) * 2.2);
+    --_h: calc(var(--_bh) + 2px);
+    --_m: calc(var(--_s) * 0.6);
+    --_b: calc(var(--_s) * 0.65);
+    --_pb: calc(var(--_s) * 3.4);
+}
+.vp *,
+.vp *::before,
+.vp *::after {
+    box-sizing: border-box;
+}
+.vp [hidden] {
+    display: none !important;
+}
+.vp-portrait {
+    max-width: calc(var(--vp-max-height, 100dvh) * var(--_ratio));
+    margin-inline: auto;
+}
+.vp:fullscreen {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    aspect-ratio: auto;
+    border-radius: 0;
+}
+.vp-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.vp:not(.vp-native) .vp-video::cue {
+    opacity: 0;
+    visibility: hidden;
+}
+.vp-msg {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.78);
+}
+
+/* .vp-ui covers the whole player. It holds the control bar, the icons that went up out of it (see the responsive layout at the end of the file) and the
+   captions (.vp-cues). The bar is along the bottom, and with the glass it is a pill. Its glass is its ::before and not the bar itself: neither
+   a filter nor a backdrop-filter may be on the bar, because either would make it the containing block of the icons that went up, and those are placed against .vp-ui.
+   For the same reason the bar is static.
+   The fullscreen zoom (Player.applyZoom) is set on .vp-ui, so the bar and the captions grow together. */
+.vp-ui {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    isolation: isolate;
+    pointer-events: none;
+}
+.vp-bar {
+    display: flex;
+    align-items: center;
+    height: var(--_h);
+    margin: 0 var(--_m) var(--_b);
+    padding: 0 2px;
+    transition: opacity 0.25s;
+    pointer-events: auto;
+}
+.vp-bar::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: auto var(--_m) var(--_b);
+    height: var(--_h);
+    border: 1px solid transparent;
+}
+.vp:not(.vp-glass) .vp-bar::before {
+    display: none;
+}
+.vp-glass .vp-bar::before,
+.vp-glass.vp-vol-up .vp-vol,
+.vp-glass.vp-air-up:not(.vp-pip-up) .vp-air,
+.vp-glass.vp-pip-up:not(.vp-fs-up) .vp-remote,
+.vp-glass.vp-fs-up .vp-screen,
+.vp-glass.vp-simple .vp-gear,
+.vp-glass.vp-simple .vp-cc,
+.vp-glass.vp-simple .vp-play,
+.vp-glass.vp-play-off .vp-gear,
+.vp-glass.vp-cc-up .vp-cc,
+.vp-glass .vp-play-mid {
+    border-color: rgba(255, 255, 255, 0.12) rgba(255, 255, 255, 0.09) rgba(255, 255, 255, 0.07);
+    border-radius: 999px;
+    background: var(--vp-pill-bg, rgba(75, 75, 80, 0.55));
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+}
+.vp-idle .vp-bar {
+    opacity: 0;
+    pointer-events: none;
+}
+.vp-idle {
+    cursor: none;
+}
+.vp-cues {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    padding: 0 5% 0.3em;
+    font-size: 26px;
+    line-height: normal;
+    text-align: center;
+    transition:
+        bottom 0.25s,
+        padding-bottom 0.25s;
+}
+.vp:not(.vp-idle) .vp-cues {
+    bottom: calc(var(--_b) + var(--_h) + 10px);
+    padding-bottom: 0;
+}
+.vp-native .vp-cues {
+    display: none;
+}
+.vp-cue {
+    max-width: 100%;
+    white-space: pre-line;
+    unicode-bidi: plaintext;
+}
+.vp-cue-t {
+    border-radius: 5px;
+    padding: 0 0.2em;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+.vp-btn {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: var(--_bw);
+    height: var(--_bh);
+    padding: 0;
+    border: 0;
+    border-radius: min(
+        var(--_r),
+        calc(var(--_bh) / 2)
+    );
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.vp-glass .vp-btn {
+    border-radius: 999px;
+}
+.vp-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: calc(var(--_s) * 1.8);
+    height: calc(var(--_s) * 1.8);
+    margin: auto;
+    border-radius: min(var(--_r), calc(var(--_s) * 0.9));
+    background: transparent;
+    z-index: -1;
+    pointer-events: none;
+}
+.vp-glass .vp-btn::before {
+    border-radius: 50%;
+}
+.vp-btn:hover::before {
+    background: rgba(255, 255, 255, 0.14);
+}
+.vp-btn:focus-visible,
+.vp-dur:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+}
+.vp-range:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+.vp-i {
+    display: block;
+    width: 22px;
+    height: 22px;
+    flex: none;
+}
+/* An inline <svg> clips at its viewBox and several icons are drawn right up to it (captions-off: its stroke spans the whole 18 units), which
+   Safari clipped on the right. The attribute overflow="visible" in icons.ts already says so; this rule has two classes so that a host reset
+   such as svg { overflow: hidden } or svg:not(:root) { overflow: hidden } cannot undo it. */
+.vp .vp-i {
+    overflow: visible;
+}
+.vp-btn .vp-i {
+    width: var(--_s);
+    height: var(--_s);
+}
+.vp-gear .vp-i {
+    transition: transform 0.2s ease-out;
+}
+.vp-gear[aria-expanded='true'] .vp-i {
+    transform: rotate(30deg);
+}
+.vp-timeline {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+.vp-screen {
+    display: flex;
+    flex: none;
+    align-items: center;
+}
+.vp-remote {
+    display: contents;
+}
+.vp-time {
+    flex: none;
+    padding: 0 calc(var(--_s) * 0.4);
+    font-size: max(11px, calc(var(--_s) * 0.75));
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.vp-dur {
+    height: var(--_bh);
+    border: 0;
+    border-radius: min(var(--_r), calc(var(--_bh) / 2));
+    background: none;
+    color: inherit;
+    font-family: inherit;
+    cursor: pointer;
+}
+.vp-glass .vp-dur {
+    border-radius: 999px;
+}
+.vp-dur[aria-disabled='true'] {
+    cursor: default;
+}
+.vp-air-tri {
+    animation: vp-air-tri 1s ease-in-out infinite alternate;
+}
+@keyframes vp-air-tri {
+    to {
+        opacity: 0.3;
+    }
+}
+
+.vp-range {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    height: max(20px, var(--_s));
+    background: none;
+    cursor: pointer;
+}
+.vp-seek {
+    flex: 1;
+    min-width: 0;
+    --p: 0%;
+    --b: 0%;
+    --track: linear-gradient(90deg, #fff var(--p), rgba(255, 255, 255, 0.36) var(--p) var(--b), rgba(255, 255, 255, 0.18) var(--b));
+}
+.vp-vol {
+    display: flex;
+    align-items: center;
+}
+.vp-volume {
+    width: 0;
+    opacity: 0;
+    transition:
+        width 0.2s,
+        opacity 0.2s;
+    --p: 100%;
+    --track: linear-gradient(90deg, #fff var(--p), rgba(255, 255, 255, 0.36) var(--p));
+}
+.vp-vol:hover .vp-volume,
+.vp-vol:focus-within .vp-volume,
+.vp-vol.vp-drag .vp-volume {
+    width: calc(var(--_s) * 3.6);
+    opacity: 1;
+    margin: 0 calc(var(--_s) * 0.4) 0 calc(var(--_s) * 0.1);
+}
+.vp-range::-webkit-slider-runnable-track {
+    height: calc(var(--_s) * 0.25);
+    border-radius: calc(var(--_s) * 0.25);
+    background: var(--track);
+}
+.vp-range::-moz-range-track {
+    height: calc(var(--_s) * 0.25);
+    border-radius: calc(var(--_s) * 0.25);
+    background: var(--track);
+}
+.vp-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: calc(var(--_s) * 0.7);
+    height: calc(var(--_s) * 0.7);
+    margin-top: calc(var(--_s) * -0.225);
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    transform: scale(0);
+    transition: transform 0.15s;
+}
+.vp-range::-moz-range-thumb {
+    width: calc(var(--_s) * 0.7);
+    height: calc(var(--_s) * 0.7);
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    transform: scale(0);
+    transition: transform 0.15s;
+}
+.vp-range:hover::-webkit-slider-thumb,
+.vp-range:focus-visible::-webkit-slider-thumb,
+.vp-range.vp-grab::-webkit-slider-thumb {
+    transform: scale(1);
+}
+.vp-range:hover::-moz-range-thumb,
+.vp-range:focus-visible::-moz-range-thumb,
+.vp-range.vp-grab::-moz-range-thumb {
+    transform: scale(1);
+}
+
+.vp-menu {
+    position: absolute;
+    z-index: 1;
+    right: var(--_m);
+    bottom: calc(var(--_b) + var(--_h) + 8px);
+    width: calc(var(--_s) * 12.2);
+    max-width: calc(100% - var(--_m) * 2 - 2px);
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    padding: calc(var(--_s) * 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: calc(var(--_r) * 7 / 6);
+    background: var(--vp-menu-bg, rgba(64, 58, 52, 0.55));
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    box-shadow:
+        0 10px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    font-size: max(11px, calc(var(--_s) * 0.8));
+    font-weight: 600;
+    line-height: calc(var(--_s) * 1.1);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    animation: vp-pop 0.15s ease-out;
+}
+@keyframes vp-pop {
+    from {
+        opacity: 0;
+        translate: 0 6px;
+    }
+}
+.vp-list {
+    position: relative;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+.vp-mi {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--_s) * 0.4);
+    width: 100%;
+    padding: calc(var(--_s) * 0.45) calc(var(--_s) * 0.5);
+    border: 0;
+    border-radius: max(0px, calc(var(--_r) * 7 / 6 - var(--_s) * 0.2));
+    background: none;
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    text-shadow: inherit;
+    cursor: pointer;
+}
+.vp-mi:hover,
+.vp-mi:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    outline: 0;
+}
+/* The alpha of the icons of the popup is in their colour, not in an opacity on the <svg> (here and in the three rules below): WebKit paints an <svg> at a whole pixel but clips the
+   transparency layer of an opacity at its box, so an icon drawn right up to its box (airplay, captions, picture in picture) loses its right edge when that box is not on whole
+   pixels, e.g. 16.5px wide with an iconSize of 15. */
+.vp-mi .vp-i {
+    width: calc(var(--_s) * 1.1);
+    height: calc(var(--_s) * 1.1);
+    color: rgba(255, 255, 255, 0.72);
+}
+.vp-mi-t {
+    min-width: 0;
+    padding: calc(var(--_s) * 0.15) 0;
+    margin: calc(var(--_s) * -0.15) 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.vp-mi-v {
+    flex: 0 20 auto;
+    min-width: 0;
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 500;
+}
+.vp-mi .vp-chev {
+    width: calc(var(--_s) * 0.9);
+    height: calc(var(--_s) * 0.9);
+    margin-left: calc(var(--_s) * -0.2);
+    color: rgba(255, 255, 255, 0.65);
+}
+.vp-mi .vp-ck {
+    width: var(--_s);
+    height: var(--_s);
+    margin: 0 calc(var(--_s) * -0.4) 0 auto;
+    color: rgba(255, 255, 255, 0.8);
+}
+.vp-badge {
+    margin-left: calc(var(--_s) * 0.2);
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 0;
+    vertical-align: 0.45em;
+    color: rgba(255, 255, 255, 0.65);
+}
+.vp-pill {
+    flex: none;
+    padding: calc(var(--_s) * 0.15) calc(var(--_s) * 0.45);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 0.92em;
+    line-height: calc(var(--_s) * 0.75);
+}
+.vp-head {
+    padding: calc(var(--_s) * 0.4);
+}
+.vp-mi .vp-back {
+    width: calc(var(--_s) * 0.9);
+    height: calc(var(--_s) * 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    transform: rotate(180deg);
+}
+.vp-sep {
+    height: 1px;
+    margin: calc(var(--_s) * 0.25) 0 calc(var(--_s) * 0.15);
+    background: rgba(0, 0, 0, 0.16);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.vp-vol-up .vp-vol {
+    position: absolute;
+    top: var(--_m);
+    left: var(--_m);
+    height: var(--_h);
+    padding: 0 1px;
+    border: 1px solid transparent;
+}
+.vp-vol-up .vp-vol .vp-btn {
+    width: calc(var(--_bh) - 2px);
+}
+.vp-air-up:not(.vp-pip-up) .vp-air {
+    position: absolute;
+    top: var(--_m);
+    right: var(--_m);
+    width: var(--_h);
+    height: var(--_h);
+    border: 1px solid transparent;
+}
+.vp-pip-up:not(.vp-fs-up) .vp-remote {
+    position: absolute;
+    top: var(--_m);
+    right: var(--_m);
+    display: flex;
+    align-items: center;
+    height: var(--_h);
+    padding: 0 1px;
+    border: 1px solid transparent;
+}
+.vp-pip-up:not(.vp-fs-up) .vp-remote:not(:has(.vp-btn:not([hidden]))) {
+    display: none;
+}
+.vp-fs-up .vp-screen {
+    position: absolute;
+    top: var(--_m);
+    right: var(--_m);
+    height: var(--_h);
+    padding: 0 1px;
+    border: 1px solid transparent;
+}
+.vp-fs-up .vp-screen:not(:has(.vp-btn:not([hidden]))) {
+    display: none;
+}
+.vp-play-off .vp-play,
+.vp-play-off .vp-screen {
+    display: none;
+}
+.vp-play-off {
+    --_fit: 0.85;
+}
+.vp-cc-up {
+    --_fit: 0.75;
+}
+.vp-narrow .vp-cues {
+    font-size: 16px;
+}
+
+.vp-simple .vp-bar {
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+.vp-simple .vp-bar::before {
+    display: none;
+}
+.vp-simple .vp-screen {
+    display: none;
+}
+.vp-simple .vp-vol,
+.vp-simple .vp-gear,
+.vp-simple .vp-cc {
+    transition: opacity 0.25s;
+}
+.vp-simple.vp-idle .vp-bar {
+    opacity: 1;
+    pointer-events: auto;
+}
+.vp-simple.vp-idle .vp-vol,
+.vp-simple.vp-idle .vp-gear,
+.vp-simple.vp-idle .vp-cc {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.vp-simple .vp-gear,
+.vp-simple .vp-cc,
+.vp-play-off .vp-gear,
+.vp-cc-up .vp-cc {
+    position: absolute;
+    top: var(--_m);
+    width: var(--_h);
+    height: var(--_h);
+    border: 1px solid transparent;
+}
+.vp-simple .vp-gear,
+.vp-play-off .vp-gear {
+    right: var(--_m);
+}
+.vp-simple .vp-cc,
+.vp-cc-up .vp-cc {
+    right: calc(var(--_m) + var(--_h) + var(--_s) * 0.4);
+}
+.vp-simple .vp-gear[aria-expanded='true'] .vp-i,
+.vp-play-off .vp-gear[aria-expanded='true'] .vp-i {
+    transform: none;
+}
+.vp-simple .vp-menu,
+.vp-play-off .vp-menu {
+    top: calc(var(--_m) + var(--_h) + 8px);
+    bottom: auto;
+    animation-name: vp-pop-down;
+}
+@keyframes vp-pop-down {
+    from {
+        opacity: 0;
+        translate: 0 -6px;
+    }
+}
+
+.vp-simple .vp-play,
+.vp-play-mid {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--_pb);
+    height: var(--_pb);
+    border: 1px solid transparent;
+    translate: -50% -50%;
+    scale: 0.85;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.2s,
+        scale 0.2s,
+        visibility 0s 0.2s;
+}
+.vp-simple.vp-playflash .vp-play,
+.vp-playflash .vp-play-mid {
+    scale: 1;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+        opacity 0.15s,
+        scale 0.15s;
+}
+.vp-simple .vp-play .vp-i,
+.vp-play-mid .vp-i {
+    width: calc(var(--_s) * 1.6);
+    height: calc(var(--_s) * 1.6);
+}
+.vp-simple .vp-play::before,
+.vp-play-mid::before {
+    width: calc(var(--_pb) * 0.8);
+    height: calc(var(--_pb) * 0.8);
+    border-radius: min(var(--_r), calc(var(--_pb) * 0.4));
+}
+.vp-glass.vp-simple .vp-play::before {
+    border-radius: 50%;
+}
+.vp-simple .vp-play-mid {
+    display: none;
+}
+
+.vp-simple .vp-timeline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-end;
+    gap: 0;
+}
+.vp-simple .vp-seek {
+    order: 3;
+    flex: 0 0 100%;
+    box-sizing: content-box;
+    height: calc(var(--_s) * 0.5);
+    padding: calc(var(--_s) * 0.6) 0 0;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.55));
+}
+.vp-simple .vp-seek::-webkit-slider-runnable-track {
+    height: calc(var(--_s) * 0.15);
+    margin-top: calc(var(--_s) * 0.35);
+    border-radius: 0;
+}
+.vp-simple .vp-seek::-moz-range-track {
+    height: calc(var(--_s) * 0.15);
+    border-radius: 0;
+}
+.vp-simple .vp-seek:hover::-webkit-slider-runnable-track,
+.vp-simple .vp-seek.vp-grab::-webkit-slider-runnable-track {
+    height: calc(var(--_s) * 0.3);
+    margin-top: calc(var(--_s) * 0.2);
+}
+.vp-simple .vp-seek:hover::-moz-range-track,
+.vp-simple .vp-seek.vp-grab::-moz-range-track {
+    height: calc(var(--_s) * 0.3);
+}
+.vp-simple .vp-seek::-webkit-slider-thumb {
+    margin-top: calc(var(--_s) * -0.2);
+}
+.vp-simple .vp-time {
+    order: 1;
+    height: auto;
+    padding: 0 calc(var(--_s) * 0.15);
+    font-size: max(12px, calc(var(--_s) * 0.9));
+    font-weight: 600;
+    text-shadow:
+        0 0 2px rgba(0, 0, 0, 0.85),
+        0 1px 5px rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.15s,
+        visibility 0s 0.15s;
+}
+.vp-simple .vp-dur {
+    order: 2;
+}
+.vp-simple .vp-dur::before {
+    content: '/';
+    margin-right: calc(var(--_s) * 0.3);
+}
+.vp-simple.vp-scrub .vp-time {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.15s;
+}
+.vp-simple:not(.vp-idle) .vp-cues {
+    bottom: calc(var(--_s) * 0.6);
+}
+.vp-simple.vp-scrub .vp-cues {
+    bottom: calc(var(--_s) * 2.8);
+}
+@media (pointer: coarse) {
+    .vp-simple .vp-seek {
+        padding-top: calc(var(--_s) * 1.7);
+    }
+    .vp-simple.vp-scrub .vp-cues {
+        bottom: calc(var(--_s) * 3.8);
+    }
+}
+
+/* No bar and no pill: only the icons are left, on the bare video, where they are with the glass, and the hover of an icon is a square (.vp-btn above).
+   What the glass was the backdrop of has none now, so what a bright frame would swallow gets a thin dark edge and a soft halo.
+   The filter is on each icon and never on the bar: see the top of the file for why the bar may not have one.
+   will-change: Safari repaints a filtered <svg> or range input without what the filter adds around it, so after the icon is swapped (play / pause) or
+   the volume slider opens, the halo is cut into a rectangle. A layer of its own is painted whole, halo included. */
+.vp:not(.vp-glass) .vp-btn .vp-i,
+.vp:not(.vp-glass) .vp-range {
+    filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+    will-change: filter;
+}
+.vp:not(.vp-glass) .vp-time {
+    text-shadow:
+        0 0 1.5px rgba(0, 0, 0, 0.85),
+        0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vp *,
+    .vp *::before,
+    .vp *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}

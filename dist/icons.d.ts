@@ -1,0 +1,26 @@
+export declare const ICONS: {
+    'airplay-enter': string;
+    'airplay-exit': string;
+    'captions-off': string;
+    'captions-on': string;
+    'fullscreen-enter': string;
+    'fullscreen-exit': string;
+    'menu-back': string;
+    'menu-item-accessibility': string;
+    'menu-item-caption': string;
+    'menu-item-toggle': string;
+    mute: string;
+    pause: string;
+    'pip-enter': string;
+    'pip-exit': string;
+    play: string;
+    restart: string;
+    settings: string;
+    'volume-high': string;
+    'volume-low': string;
+    check: string;
+    'more-vertical': string;
+};
+export type IconName = keyof typeof ICONS;
+export declare function icon(name: IconName, className?: string): SVGElement;
+export declare const setIcon: (button: HTMLElement, name: IconName) => void;
